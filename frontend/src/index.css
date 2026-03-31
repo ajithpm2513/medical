@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-clinical-light text-slate-800 antialiased;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary hover:bg-primary-dark text-white font-medium py-2 px-6 rounded-md transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  
+  .btn-outline {
+    @apply border border-primary text-primary hover:bg-primary/5 font-medium py-2 px-6 rounded-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  
+  .card {
+    @apply bg-white border border-slate-200 rounded-xl shadow-sm;
+  }
+  
+  .input-field {
+    @apply w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 outline-none;
+  }
+  
+  .report-container {
+    @apply bg-[#f1f5f9] border border-[#e2e8f0] rounded-lg p-6 font-serif relative overflow-hidden;
+    background-image: linear-gradient(#e5e7eb 1px, transparent 1px);
+    background-size: 100% 2rem;
+  }
+  
+  .report-inner {
+    @apply bg-white shadow-md p-8 min-h-[400px] border border-slate-200;
+  }
+}
+
+.mri-dropzone {
+  @apply flex flex-col items-center justify-center p-12 border-2 border-dashed border-slate-300 rounded-2xl bg-white/50 hover:bg-primary/5 hover:border-primary transition-all duration-300;
+}
+
+.spinner {
+  @apply border-4 border-slate-200 border-t-primary rounded-full w-12 h-12 animate-spin;
+}

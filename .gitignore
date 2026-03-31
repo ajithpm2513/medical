@@ -1,0 +1,38 @@
+# Dependency directories
+node_modules/
+frontend/node_modules/
+.venv/
+backend/.venv/
+env/
+venv/
+ENV/
+
+# Build outputs
+dist/
+build/
+*.pyc
+__pycache__/
+
+# Environment and Secrets
+.env
+.env.local
+.env.*.local
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Large Assets / Weights (Project specific)
+backend/models/*
+!backend/models/.gitkeep
+backend/research/*
+!backend/research/.gitkeep
+
+# Testing
+coverage/
+.nyc_output/
