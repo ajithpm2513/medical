@@ -1,12 +1,16 @@
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 from typing import Optional
+from pathlib import Path
+
+# Resolves to .../backend/ regardless of where the app is run from
+_APP_ROOT = Path(__file__).resolve().parent.parent.parent
 
 class Settings(BaseSettings):
     APP_NAME: str = "MRI Diagnostic Suite"
     API_VERSION: str = "v1"
-    MODEL_PATH: str = "/home/user/medical/backend/models"
-    RESEARCH_PATH: str = "/home/user/medical/backend/research"
+    MODEL_PATH: str = str(_APP_ROOT / "models")
+    RESEARCH_PATH: str = str(_APP_ROOT / "research")
     DEBUG: bool = True
     GROQ_API_KEY: Optional[str] = None
     CLASS_MAPPING: dict = {
