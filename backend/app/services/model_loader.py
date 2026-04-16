@@ -142,3 +142,89 @@ class ModelManager:
         model.load_state_dict(state_dict, strict=False)
         model.eval()
         return model
+
+    # ------------------------------------------------------------------ #
+    #  Grad-CAM++ heatmap generation for TripleAttentionFusion           #
+    # ------------------------------------------------------------------ #
+    @staticmethod
+    def generate_gradcam(
+        model: torch.nn.Module,
+        input_tensor: torch.Tensor,
+        original_image_bgr,
+        predicted_class_idx: int,
+        output_path: str = "static/heatmaps/diagnostic_focus.png",
+    ) -> str:
+        """Generate a Grad-CAM++ heatmap with a colour-bar intensity scale.
+
+        Parameters
+        ----------
+        model : TripleAttentionFusion instance (eval mode).
+        input_tensor : Pre-processed (1, 3, 224, 224) tensor.
+        original_image_bgr : Raw OpenCV BGR image from the upload.
+        predicted_class_idx : The argmax class index from inference.
+        output_path : Where to save the final figure.
+
+        Returns
+        -------
+        The relative URL path to the saved heatmap image.
+        """
+        import cv2 as _cv2
+        import numpy as np
+        import matplotlib
+        matplotlib.use("Agg")            # non-interactive backend
+        import matplotlib.pyplot as plt
+        from pytorch_grad_cam import GradCAMPlusPlus
+        from pytorch_grad_cam.utils.image import show_cam_on_image
+        from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
+
+        # ── 1. Identify the target layer ─────────────────────────────────
+        # model.densenet_feat is nn.Sequential(…, DenseBlock, Transition, …, AdaptiveAvgPool2d)
+        # [-2] gives us the layer just before the final AdaptiveAvgPool2d,
+        # which retains spatial dimensions (≈7×7).
+        target_layer = model.densenet_feat[-2]
+
+        # ── 2. Run GradCAM++ ─────────────────────────────────────────────
+        cam = GradCAMPlusPlus(model=model, target_layers=[target_layer])
+        targets = [ClassifierOutputTarget(predicted_class_idx)]
+        grayscale_cam = cam(input_tensor=input_tensor, targets=targets)  # (1, H, W)
+        grayscale_cam = grayscale_cam[0, :]                               # (H, W)
+
+        # ── 3. Prepare the RGB base image at 224×224 ─────────────────────
+        rgb_img = _cv2.cvtColor(original_image_bgr, _cv2.COLOR_BGR2RGB)
+        rgb_img = _cv2.resize(rgb_img, (224, 224))
+        rgb_img_float = rgb_img.astype(np.float32) / 255.0
+
+        # ── 4. Overlay the CAM ───────────────────────────────────────────
+        cam_image = show_cam_on_image(rgb_img_float, grayscale_cam, use_rgb=True)
+
+        # ── 5. Build Matplotlib figure with colour-bar ───────────────────
+        fig, ax = plt.subplots(1, 1, figsize=(6, 5))
+        ax.imshow(cam_image)
+        ax.set_axis_off()
+        ax.set_title("Grad-CAM++ Diagnostic Focus", fontsize=11, fontweight="bold", pad=10)
+
+        # Invisible image mapped to [0, 1] used solely for the colour-bar
+        sm = plt.cm.ScalarMappable(cmap="jet", norm=plt.Normalize(vmin=0.0, vmax=1.0))
+        sm.set_array([])
+        cbar = fig.colorbar(sm, ax=ax, fraction=0.046, pad=0.04)
+        cbar.set_label("Attention Intensity", fontsize=9)
+        cbar.set_ticks([0.0, 0.25, 0.5, 0.75, 1.0])
+        cbar.set_ticklabels(["0.0\nLow", "0.25", "0.5", "0.75", "1.0\nHigh"])
+        cbar.ax.tick_params(labelsize=8)
+
+        # ── 6. Save ─────────────────────────────────────────────────────
+        abs_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),  # …/app/services
+            "..", "..",                                   # …/backend
+            output_path,
+        )
+        abs_path = os.path.normpath(abs_path)
+        os.makedirs(os.path.dirname(abs_path), exist_ok=True)
+        fig.savefig(abs_path, bbox_inches="tight", dpi=150)
+        plt.close(fig)
+
+        # Clean up CAM internals
+        cam.__del__()    # type: ignore[misc]
+
+        return f"/{output_path}"
+
